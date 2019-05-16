@@ -8,7 +8,6 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.text.TextPaint
 import android.util.AttributeSet
-import android.util.Log
 import android.util.SparseArray
 import android.view.MotionEvent
 import android.view.VelocityTracker
@@ -16,7 +15,8 @@ import android.view.View
 import android.widget.EdgeEffect
 import android.widget.OverScroller
 import androidx.core.graphics.withTranslation
-import java.util.*
+import org.joda.time.DateTime
+import org.joda.time.DateTimeConstants
 import kotlin.math.abs
 
 /**
@@ -103,15 +103,14 @@ class DayflowSummaryView : View {
     val weekdays
         get() = if (showWeekends) WEEKDAY else WORKDAY
 
-    var startDate: Date = Date()
+    var startDate = DateTime.now()
         set(value) {
             if (field != value) {
                 field = value
                 postInvalidate()
             }
         }
-    private var currentDate = Date()
-    private val calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
+    private var currentDate = DateTime.now()
 
     constructor(context: Context) : this(context, null)
     constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
@@ -224,25 +223,25 @@ class DayflowSummaryView : View {
         canvas?.withTranslation((paddingLeft).toFloat(), paddingTop.toFloat()) {
             resetDate()
             var currentColumnOffsetX = drawWeekLabel(this)
-            var currentYear = calendar.get(Calendar.YEAR)
-            var currentMonth = calendar.get(Calendar.MONTH)
+            var currentYear = currentDate.year
+            var currentMonth = currentDate.monthOfYear
 
             val width = measuredWidth
             var pointDrawn = 0
             drawYearLabel(canvas, currentColumnOffsetX, width + scrollOffset, currentYear)
             currentColumnOffsetX = skipDate(currentColumnOffsetX)
             while (currentColumnOffsetX < width + scrollOffset) {
-                val weekDay = calendar.get(Calendar.DAY_OF_WEEK)
-                val year = calendar.get(Calendar.YEAR)
-                val month = calendar.get(Calendar.MONTH)
-                val day = calendar.get(Calendar.DAY_OF_MONTH)
+                val weekDay = currentDate.dayOfWeek
+                val year = currentDate.year
+                val month = currentDate.monthOfYear
+                val day = currentDate.dayOfMonth
 
                 if (year != currentYear) {
                     drawYearLabel(canvas, currentColumnOffsetX, width + scrollOffset, year)
                     currentYear = year
                 }
 
-                if (month != currentMonth && day == calendar.getActualMaximum(Calendar.DAY_OF_MONTH)) {
+                if (month != currentMonth && day == currentDate.dayOfMonth().maximumValue) {
                     drawMonthLabel(canvas, currentColumnOffsetX, width + scrollOffset, year, month)
                     currentMonth = month
                 }
@@ -255,14 +254,14 @@ class DayflowSummaryView : View {
     }
 
     private fun decreaseCalendar(weekDay: Int, currentColumnOffsetX: Int): Int {
-        calendar.add(Calendar.DAY_OF_YEAR, -1)
-        return if (weekDay == Calendar.SUNDAY) {
+        currentDate = currentDate.dayOfYear().addToCopy(-1)
+        return if (weekDay == DateTimeConstants.SUNDAY) {
             currentColumnOffsetX + pointSize + pointSpacing
         } else currentColumnOffsetX
     }
 
     private fun drawCalendarPoint(canvas: Canvas, currentColumnOffsetX: Int, weekDay: Int) {
-        pointPaint.color = getPointColor(calendar.time)
+        pointPaint.color = getPointColor(currentDate)
         canvas.drawCircle(
             currentColumnOffsetX + pointSize * 0.5f,
             topSpacing + (weekDay - 1) * (pointSize + pointSpacing) + pointSize * 0.5f,
@@ -270,16 +269,15 @@ class DayflowSummaryView : View {
         )
     }
 
+    private fun prepareCache() {
+        
+    }
+
     private fun resetDate() {
-        currentDate.time = startDate.time
-        calendar.time = currentDate
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
-        if (calendar.get(Calendar.DAY_OF_WEEK) != Calendar.SATURDAY) {
-            calendar.set(Calendar.DAY_OF_WEEK, calendar.getActualMaximum(Calendar.DAY_OF_WEEK))
+        currentDate = startDate.withTime(0, 0, 0, 0)
+            .dayOfMonth().withMaximumValue()
+        if (currentDate.dayOfWeek != DateTimeConstants.SATURDAY) {
+            currentDate = currentDate.dayOfWeek().withMaximumValue()
         }
     }
 
@@ -287,7 +285,7 @@ class DayflowSummaryView : View {
         val offsetSize = scrollX - currentColumnOffsetX
         return if (offsetSize > 0) {
             val skipWeek = offsetSize / (pointSize + pointSpacing)
-            calendar.add(Calendar.DAY_OF_YEAR, -skipWeek * WEEKDAY)
+            currentDate = currentDate.weekOfWeekyear().addToCopy(-skipWeek)
             currentColumnOffsetX + (pointSize + pointSpacing) * skipWeek
         } else currentColumnOffsetX
     }
@@ -298,7 +296,7 @@ class DayflowSummaryView : View {
         return adapter?.getMonthColor(year, month) ?: inactiveColor
     }
 
-    private fun getPointColor(time: Date): Int {
+    private fun getPointColor(time: DateTime): Int {
         return adapter?.let { adapter ->
             if (adapter.getDayActive(time)) {
                 adapter.getDayColor(time)
@@ -348,9 +346,9 @@ class DayflowSummaryView : View {
 
     abstract class Adapter {
 
-        abstract fun getDayActive(day: Date): Boolean
+        abstract fun getDayActive(day: DateTime): Boolean
 
-        abstract fun getDayColor(day: Date): Int
+        abstract fun getDayColor(day: DateTime): Int
 
         abstract fun getYearColor(year: Int): Int
 

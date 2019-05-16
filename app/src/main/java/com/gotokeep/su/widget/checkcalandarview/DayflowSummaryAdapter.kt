@@ -1,8 +1,9 @@
 package com.gotokeep.su.widget.checkcalandarview
 
 import android.graphics.Color
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 import java.text.SimpleDateFormat
-import java.util.*
 
 /**
  *
@@ -10,31 +11,23 @@ import java.util.*
  * @author Xana/cuixianming
  */
 class DayflowSummaryAdapter(
-    val startDate: Date,
-    val data: Map<String, Int>
+    private val startDate: DateTime,
+    private val data: Map<String, Int>
 ) : DayflowSummaryView.Adapter() {
 
-    private val calender = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
-    private val startYear: Int
-    private val startMonth: Int
-    private val today = Date()
+    private val startYear: Int = startDate.year
+    private val startMonth: Int = startDate.monthOfYear
+    private val today = DateTime.now()
 
-    init {
-        calender.time = startDate
-        startYear = calender.get(Calendar.YEAR)
-        startMonth = calender.get(Calendar.MONTH)
-    }
-
-    override fun getDayActive(day: Date): Boolean {
+    override fun getDayActive(day: DateTime): Boolean {
         return day > startDate && day <= today
     }
 
-    private fun hasRecord(day: Date): Boolean {
-        calender.time = day
-        return data.containsKey(format.format(calender.time))
+    private fun hasRecord(day: DateTime): Boolean {
+        return data.containsKey(day.toString("yyyyMMdd"))
     }
 
-    override fun getDayColor(day: Date): Int {
+    override fun getDayColor(day: DateTime): Int {
         return if (hasRecord(day)) ACTIVE_COLOR else NORMAL_COLOR
     }
 
@@ -49,13 +42,5 @@ class DayflowSummaryAdapter(
     companion object {
         private val NORMAL_COLOR = Color.argb(101, 255, 255, 255)
         private const val ACTIVE_COLOR = Color.WHITE
-        private val format = SimpleDateFormat("yyyyMMdd")
-
-        private fun isSameDay(dayA: Date, dayB: Date): Boolean {
-            val calA = Calendar.getInstance().apply { time = dayA }
-            val calB = Calendar.getInstance().apply { time = dayB }
-            return calA.get(Calendar.YEAR) == calB.get(Calendar.YEAR) &&
-                    calA.get(Calendar.DAY_OF_YEAR) == calB.get(Calendar.DAY_OF_YEAR)
-        }
     }
 }
