@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#008577</color>
-    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorPrimary">@color/moody_blue</color>
+    <color name="colorPrimaryDark">@color/moody_blue_dark</color>
     <color name="colorAccent">#D81B60</color>
+
+    <color name="moody_blue">#7779C9</color>
+    <color name="moody_blue_dark">#6466BC</color>
 </resources>

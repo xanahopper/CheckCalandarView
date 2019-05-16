@@ -8,4 +8,13 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="DayflowDefaultStyle">
+        <item name="radius">8dp</item>
+        <item name="pointSize">8dp</item>
+        <item name="pointSpacing">6dp</item>
+        <item name="weekTextSize">9sp</item>
+        <item name="monthTextSize">11sp</item>
+        <item name="yearTextSize">16sp</item>
+    </style>
+
 </resources>

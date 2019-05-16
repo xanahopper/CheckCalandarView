@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="DayflowSummaryView">
+        <attr name="radius" format="dimension" />
+        <attr name="pointSpacing" format="dimension" />
+        <attr name="pointSize" format="dimension" />
+        <attr name="weekTextSize" format="dimension" />
+        <attr name="monthTextSize" format="dimension" />
+        <attr name="yearTextSize" format="dimension" />
+        <attr name="showIncomingWeekFully" format="boolean" />
+        <attr name="noStartDate" format="boolean" />
+        <attr name="android:clipToPadding" />
+    </declare-styleable>
+</resources>
