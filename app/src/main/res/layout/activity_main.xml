@@ -12,7 +12,6 @@
         android:id="@+id/viewSummary"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:paddingTop="20dp"
         android:paddingBottom="20dp"
         android:paddingRight="10dp"
         android:paddingLeft="10dp"

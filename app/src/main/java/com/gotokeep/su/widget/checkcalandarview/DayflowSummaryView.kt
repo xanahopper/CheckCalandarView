@@ -264,7 +264,7 @@ class DayflowSummaryView : View {
         pointPaint.color = getPointColor(currentDate)
         canvas.drawCircle(
             currentColumnOffsetX + pointSize * 0.5f,
-            topSpacing + (weekDay - 1) * (pointSize + pointSpacing) + pointSize * 0.5f,
+            topSpacing + (weekDay) * (pointSize + pointSpacing) + pointSize * 0.5f,
             pointSize * 0.5f, pointPaint
         )
     }
@@ -310,7 +310,7 @@ class DayflowSummaryView : View {
         weekTextPaint.color = activeColor
         val scrollOffset = computeHorizontalScrollOffset()
         if (-scrollOffset + leftSpacing + maxSize > 0) {
-            canvas.withTranslation((leftSpacing).toFloat(), topSpacing.toFloat()) {
+            canvas.withTranslation((leftSpacing).toFloat(), (topSpacing + paddingTop).toFloat()) {
                 val fmi = weekTextPaint.fontMetricsInt
                 weekLabels.forEachIndexed { index, s ->
                     if (s.isNotEmpty()) {
@@ -325,7 +325,7 @@ class DayflowSummaryView : View {
     }
 
     private fun drawMonthLabel(canvas: Canvas, currentColumnOffsetX: Int, width: Int, year: Int, month: Int) {
-        val text = "${month + 1}月"
+        val text = month.toString() + "月"
         val right = currentColumnOffsetX + monthTextPaint.measureText(text)
         if (right > 0 && currentColumnOffsetX < width) {
             monthTextPaint.color = getMonthColor(year, month)
