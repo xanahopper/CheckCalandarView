@@ -17,7 +17,9 @@ import android.widget.OverScroller
 import androidx.core.graphics.withTranslation
 import org.joda.time.DateTime
 import org.joda.time.DateTimeConstants
+import org.joda.time.Duration
 import kotlin.math.abs
+import kotlin.math.max
 
 /**
  * 日记本总结 View
@@ -80,6 +82,7 @@ class DayflowSummaryView : View {
             rect
         }
     }
+    val maxWeekSize by lazy { weekLabelSize.maxBy { it.width() }!!.width() }
     private val topSpacing by lazy {
         yearTextSize + ViewUtils.dpToPx(context, DIM_YEAR_MONTH) +
                 monthTextSize + ViewUtils.dpToPx(context, DIM_MONTH_POINT)
@@ -146,7 +149,7 @@ class DayflowSummaryView : View {
     private fun smoothScrollBy(dx: Int) {
         val offsetX = when {
             scroller.finalX + dx < 0 -> -scroller.finalX
-            scroller.finalX + dx > getContentWidth() -> getContentWidth() - scroller.finalX
+            scroller.finalX + dx > getScrollRange() -> getScrollRange() - scroller.finalX
             else -> dx
         }
         scroller.startScroll(scroller.finalX, scroller.finalY, offsetX, 0)
@@ -154,7 +157,7 @@ class DayflowSummaryView : View {
     }
 
     private fun fling(velocityX: Int) {
-        scroller.fling(scroller.finalX, scroller.finalY, velocityX, 0, 0, getContentWidth(), 0, 0)
+        scroller.fling(scroller.finalX, scroller.finalY, velocityX, 0, 0, getScrollRange(), 0, 0)
         postInvalidateOnAnimation()
     }
 
@@ -185,7 +188,7 @@ class DayflowSummaryView : View {
                         scroller.abortAnimation()
                     }
                     fling(-velocityX.toInt())
-                } else if (scroller.springBack(scrollX, scrollY, 0, getContentWidth(), 0, 0)) {
+                } else if (scroller.springBack(scrollX, scrollY, 0, getScrollRange(), 0, 0)) {
                     postInvalidateOnAnimation()
                 }
                 edgeEffect.onRelease()
@@ -210,7 +213,16 @@ class DayflowSummaryView : View {
         )
     }
 
-    private fun getContentWidth() = WEEK_COUNT_PER_YEAR * pointSize + (WEEK_COUNT_PER_YEAR - 1) * pointSpacing
+    private fun getContentWidth() =
+            (adapter?.let {
+                val weeks = Duration(
+                    it.earliestDay.withDayOfWeek(DateTimeConstants.SATURDAY),
+                    it.startDay.withDayOfWeek(DateTimeConstants.SATURDAY)
+                ).standardDays / WEEKDAY
+                (weeks * pointSize + (weeks - 1) * pointSpacing).toInt()
+            } ?: WEEK_COUNT_PER_YEAR * pointSize + (WEEK_COUNT_PER_YEAR - 1) * pointSpacing)
+
+    private fun getScrollRange() = max(0, measuredWidth - getContentWidth())
 
     override fun onDraw(canvas: Canvas?) {
         val scrollOffset = computeHorizontalScrollOffset()
@@ -226,11 +238,10 @@ class DayflowSummaryView : View {
             var currentYear = currentDate.year
             var currentMonth = currentDate.monthOfYear
 
-            val width = measuredWidth
-            var pointDrawn = 0
+            val width = measuredWidth - paddingLeft - paddingRight
             drawYearLabel(canvas, currentColumnOffsetX, width + scrollOffset, currentYear)
             currentColumnOffsetX = skipDate(currentColumnOffsetX)
-            while (currentColumnOffsetX < width + scrollOffset) {
+            while (currentColumnOffsetX < width + scrollOffset && inRange()) {
                 val weekDay = currentDate.dayOfWeek
                 val year = currentDate.year
                 val month = currentDate.monthOfYear
@@ -245,17 +256,18 @@ class DayflowSummaryView : View {
                     drawMonthLabel(canvas, currentColumnOffsetX, width + scrollOffset, year, month)
                     currentMonth = month
                 }
-                pointDrawn += 1
                 drawCalendarPoint(canvas, currentColumnOffsetX, weekDay)
 
-                currentColumnOffsetX = decreaseCalendar(weekDay, currentColumnOffsetX)
+                currentColumnOffsetX = decreaseCalendar(currentColumnOffsetX)
             }
         }
     }
 
-    private fun decreaseCalendar(weekDay: Int, currentColumnOffsetX: Int): Int {
+    private fun inRange(): Boolean = adapter?.let { currentDate.isAfter(it.earliestDay) } ?: true
+
+    private fun decreaseCalendar(currentColumnOffsetX: Int): Int {
         currentDate = currentDate.dayOfYear().addToCopy(-1)
-        return if (weekDay == DateTimeConstants.SUNDAY) {
+        return if (currentDate.dayOfWeek == DateTimeConstants.SATURDAY) {
             currentColumnOffsetX + pointSize + pointSpacing
         } else currentColumnOffsetX
     }
@@ -264,20 +276,20 @@ class DayflowSummaryView : View {
         pointPaint.color = getPointColor(currentDate)
         canvas.drawCircle(
             currentColumnOffsetX + pointSize * 0.5f,
-            topSpacing + (weekDay) * (pointSize + pointSpacing) + pointSize * 0.5f,
+            topSpacing + weekDay.rem(WEEKDAY) * (pointSize + pointSpacing) + pointSize * 0.5f,
             pointSize * 0.5f, pointPaint
         )
     }
 
     private fun prepareCache() {
-        
+
     }
 
     private fun resetDate() {
         currentDate = startDate.withTime(0, 0, 0, 0)
             .dayOfMonth().withMaximumValue()
         if (currentDate.dayOfWeek != DateTimeConstants.SATURDAY) {
-            currentDate = currentDate.dayOfWeek().withMaximumValue()
+            currentDate = currentDate.withDayOfWeek(DateTimeConstants.SATURDAY)
         }
     }
 
@@ -305,12 +317,11 @@ class DayflowSummaryView : View {
     }
 
     private fun drawWeekLabel(canvas: Canvas): Int {
-        val maxSize = weekLabelSize.maxBy { it.width() }!!.width()
         val leftSpacing = ViewUtils.dpToPx(context, DIM_WEEK_START_PADDING)
         weekTextPaint.color = activeColor
         val scrollOffset = computeHorizontalScrollOffset()
-        if (-scrollOffset + leftSpacing + maxSize > 0) {
-            canvas.withTranslation((leftSpacing).toFloat(), (topSpacing + paddingTop).toFloat()) {
+        if (-scrollOffset + leftSpacing + maxWeekSize > 0) {
+            canvas.withTranslation((leftSpacing).toFloat(), (topSpacing).toFloat()) {
                 val fmi = weekTextPaint.fontMetricsInt
                 weekLabels.forEachIndexed { index, s ->
                     if (s.isNotEmpty()) {
@@ -321,7 +332,7 @@ class DayflowSummaryView : View {
                 }
             }
         }
-        return leftSpacing + maxSize + ViewUtils.dpToPx(context, DIM_WEEK_POINT)
+        return leftSpacing + maxWeekSize + ViewUtils.dpToPx(context, DIM_WEEK_POINT)
     }
 
     private fun drawMonthLabel(canvas: Canvas, currentColumnOffsetX: Int, width: Int, year: Int, month: Int) {
@@ -353,6 +364,10 @@ class DayflowSummaryView : View {
         abstract fun getYearColor(year: Int): Int
 
         abstract fun getMonthColor(year: Int, month: Int): Int
+
+        abstract val earliestDay: DateTime
+
+        abstract val startDay: DateTime
     }
 
     private class WeekData(

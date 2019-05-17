@@ -13,8 +13,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val formater = SimpleDateFormat("yyyyMMdd")
-        val calender = Calendar.getInstance(Locale.CHINA)
-        calender.set(2018, 11, 31)
-        viewSummary.adapter = DayflowSummaryAdapter(DateTime(2018, 12, 30, 0, 0, 0), mapOf(formater.format(Date(1557849600000)) to 2))
+        viewSummary.adapter = DayflowSummaryAdapter(DateTime(2019, 4, 11, 0, 0, 0), mapOf(formater.format(Date(1557849600000)) to 2))
     }
 }

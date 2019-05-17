@@ -2,8 +2,7 @@ package com.gotokeep.su.widget.checkcalandarview
 
 import android.graphics.Color
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
-import java.text.SimpleDateFormat
+import org.joda.time.DateTimeConstants
 
 /**
  *
@@ -11,16 +10,16 @@ import java.text.SimpleDateFormat
  * @author Xana/cuixianming
  */
 class DayflowSummaryAdapter(
-    private val startDate: DateTime,
+    override val startDay: DateTime,
     private val data: Map<String, Int>
 ) : DayflowSummaryView.Adapter() {
 
-    private val startYear: Int = startDate.year
-    private val startMonth: Int = startDate.monthOfYear
+    private val startYear: Int = startDay.year
+    private val startMonth: Int = startDay.monthOfYear
     private val today = DateTime.now()
 
     override fun getDayActive(day: DateTime): Boolean {
-        return day > startDate && day <= today
+        return day > startDay && day <= today
     }
 
     private fun hasRecord(day: DateTime): Boolean {
@@ -39,8 +38,12 @@ class DayflowSummaryAdapter(
         return if (year > startYear || (year == startYear && month >= startMonth)) ACTIVE_COLOR else NORMAL_COLOR
     }
 
+    override val earliestDay: DateTime = startDay.dayOfYear().addToCopy(-BACK_DAYS).withDayOfWeek(DateTimeConstants.SATURDAY)
+
     companion object {
         private val NORMAL_COLOR = Color.argb(101, 255, 255, 255)
         private const val ACTIVE_COLOR = Color.WHITE
+
+        private const val BACK_DAYS = 150
     }
 }
